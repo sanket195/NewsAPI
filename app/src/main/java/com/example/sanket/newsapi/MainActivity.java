@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public class NetworkTask extends AsyncTask<URL, Void, String> {
+    public class NetworkTask extends AsyncTask<String, Void, ArrayList<NewsItem>> {
 
         @Override
         protected void onPreExecute() {
@@ -81,11 +81,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected String doInBackground(URL... params) {
-
+        protected ArrayList<NewsItem> doInBackground(String... params) {
             ArrayList<NewsItem> mnewsData = null;
 
-            URL newsRequestUrl = NetworkUtils.makeURL(KeyContainer.KEY);
+            URL newsRequestUrl = NetworkUtils.makeURL();
             try {
                 String jsonNewsResponse = NetworkUtils
                         .getResponseFromHttpUrl(newsRequestUrl);
@@ -96,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
             return mnewsData;
         }
 
+
         @Override
         protected void onPostExecute(final ArrayList<NewsItem> mnewsData) {
             super.onPostExecute(mnewsData);
@@ -104,16 +104,17 @@ public class MainActivity extends AppCompatActivity {
                 NewsAdapter adapter = new NewsAdapter(mnewsData, new NewsAdapter.ItemClickListener() {
 
                     @Override
-                    public void onItemClick (int clickedItemIndex) {
-                        String url = mnewsData.get(clickedItemIndex).getUrl();
+                    public void OnItemClick(int clickedItem) {
+                        String url = mnewsData.get(clickedItem).getUrl();
                         Log.d(TAG, String.format("Url %s", url));
                         openPage(url);
                     }
+
                 });
                 mRecyclerView.setAdapter(adapter);
             }
         }
 
         }
-    }
+
 }
