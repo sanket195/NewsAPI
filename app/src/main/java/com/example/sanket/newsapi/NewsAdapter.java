@@ -1,11 +1,17 @@
 package com.example.sanket.newsapi;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.example.sanket.newsapi.data.Contract;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
@@ -14,54 +20,58 @@ import java.util.ArrayList;
  */
 
 public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsAdapterViewHolder> {
-    private ArrayList<NewsItem> mNewsData;
-    ItemClickListener listener;
+    private ItemClickListener listener;
+    private Cursor cursor;
+    private Context context;
+    public static final String TAG = "newsadapter";
 
-    public NewsAdapter(ArrayList<NewsItem> mNewsData, ItemClickListener listener){
+    public NewsAdapter(Cursor cursor, ItemClickListener listener){
 
-        this.mNewsData = mNewsData;
+        this.cursor = cursor;
         this.listener = listener;
+        Log.d(TAG, "NewsAdapter is been created");
     }
 
     public interface ItemClickListener{
-        void OnItemClick(int clickedItem);
+        void OnItemClick(Cursor cursor, int clickedItem);
     }
 
-    public class NewsAdapterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    class NewsAdapterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
 
         public TextView author;
         public TextView title;
         public TextView description;
-        public TextView url;
-        public TextView urlToImage;
-        public TextView publishedAt;
+        public ImageView image;
 
-        public NewsAdapterViewHolder(View view){
+        NewsAdapterViewHolder(View view){
             super(view);
             author = (TextView)view.findViewById(R.id.author);
             title = (TextView)view.findViewById(R.id.title);
             description = (TextView)view.findViewById(R.id.description);
-            url = (TextView)view.findViewById(R.id.url);
-            urlToImage = (TextView)view.findViewById(R.id.url_to_image);
-            publishedAt = (TextView)view.findViewById(R.id.published_at);
+            image = (ImageView) view.findViewById(R.id.img);
             view.setOnClickListener(this);
+            Log.d(TAG, "NewsAdapterViewHolder has been created");
         }
 
         public void bind(int position) {
-            NewsItem item = mNewsData.get(position);
-            author.setText(item.getAuthor());
-            title.setText(item.getTitle());
-            description.setText(item.getDescription());
-            url.setText(item.getUrl());
-            urlToImage.setText(item.getUrlToImage());
-            publishedAt.setText(item.getPublishedAt());
+            cursor.moveToPosition(position);
+            author.setText(cursor.getString(cursor.getColumnIndex((Contract.TABLE_NEWS.COLUMN_NAME_AUTHOR))));
+            title.setText(cursor.getString(cursor.getColumnIndex((Contract.TABLE_NEWS.COLUMN_NAME_TITLE))));
+            description.setText(cursor.getString(cursor.getColumnIndex((Contract.TABLE_NEWS.COLUMN_NAME_DESCRIPTION))));
+            String imageUrl = cursor.getString(cursor.getColumnIndex(Contract.TABLE_NEWS.COLUMN_NAME_URL_TO_IMAGE));
+
+            if(imageUrl != null){
+                Picasso.with(context).load(imageUrl).into(image);
+            }
+
+            Log.d(TAG + " @imageUrl: ", cursor.getString(cursor.getColumnIndex((Contract.TABLE_NEWS.COLUMN_NAME_URL_TO_IMAGE))));
         }
 
 
         @Override
         public void onClick(View v) {
             int position = getAdapterPosition();
-            listener.OnItemClick(position);
+            listener.OnItemClick(cursor, position);
         }
     }
 
@@ -83,10 +93,7 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsAdapterVie
 
     @Override
     public int getItemCount(){
-        if (mNewsData==null)
-            return 0;
-        else
-            return mNewsData.size();
+        return cursor.getCount();
     }
 
 }

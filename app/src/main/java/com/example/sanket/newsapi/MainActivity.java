@@ -2,8 +2,15 @@ package com.example.sanket.newsapi;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.AsyncTask;
@@ -14,11 +21,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
-import android.widget.Toast;
+
+import com.example.sanket.newsapi.data.Contract;
+import com.example.sanket.newsapi.data.DBHelper;
+import com.example.sanket.newsapi.data.DatabaseUtils;
+
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.concurrent.ScheduledExecutorService;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Void>, NewsAdapter.ItemClickListener {
 
     static final String TAG = "mainactivity";
 
@@ -26,6 +38,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private NewsAdapter mNewsAdapter;
     private JsonParser jParser;
+    private SQLiteDatabase db;
+    private Cursor cursor;
+    private static final int NEWS_LOADER = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,11 +52,37 @@ public class MainActivity extends AppCompatActivity {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(layoutManager);
 
-        NetworkTask task = new NetworkTask();
-        task.execute();
+        SharedPreferences prefer = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean isFirst = prefer.getBoolean("isFirst", true);
+
+        if(isFirst){
+            load();
+            SharedPreferences.Editor editor = prefer.edit();
+            editor.putBoolean("isFirst", false);
+            editor.commit();
+        }
+        ScheduleUtilities.scheduleRefresh(this);
+
+
 
     }
 
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        db = new DBHelper(MainActivity.this).getReadableDatabase();
+        cursor = DatabaseUtils.getAll(db);
+        mNewsAdapter = new NewsAdapter(cursor, this);
+        mRecyclerView.setAdapter(mNewsAdapter);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        db.close();
+        cursor.close();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -56,12 +97,10 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         if (id == R.id.search) {
-            Context context = MainActivity.this;
-            String message = "Search Clicked";
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+            load();
         }
 
-        return super.onOptionsItemSelected(item);
+        return true;
     }
 
     private void openPage(String url) {
@@ -72,49 +111,59 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public class NetworkTask extends AsyncTask<String, Void, ArrayList<NewsItem>> {
+    @Override
+    public Loader<Void> onCreateLoader(int id, Bundle args) {
+        Log.d(TAG, "on CreateLoader has started");
+        return new AsyncTaskLoader<Void>(this) {
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            progress.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected ArrayList<NewsItem> doInBackground(String... params) {
-            ArrayList<NewsItem> mnewsData = null;
-
-            URL newsRequestUrl = NetworkUtils.makeURL();
-            try {
-                String jsonNewsResponse = NetworkUtils
-                        .getResponseFromHttpUrl(newsRequestUrl);
-                mnewsData = jParser.parseJSON(jsonNewsResponse);
-            } catch (Exception e) {
-                e.printStackTrace();
+            // Show the progress bar when loading
+            @Override
+            protected void onStartLoading() {
+                super.onStartLoading();
+                progress.setVisibility(View.VISIBLE);
             }
-            return mnewsData;
-        }
 
-
-        @Override
-        protected void onPostExecute(final ArrayList<NewsItem> mnewsData) {
-            super.onPostExecute(mnewsData);
-            progress.setVisibility(View.GONE);
-            if (mnewsData != null) {
-                NewsAdapter adapter = new NewsAdapter(mnewsData, new NewsAdapter.ItemClickListener() {
-
-                    @Override
-                    public void OnItemClick(int clickedItem) {
-                        String url = mnewsData.get(clickedItem).getUrl();
-                        Log.d(TAG, String.format("Url %s", url));
-                        openPage(url);
-                    }
-
-                });
-                mRecyclerView.setAdapter(adapter);
+            // In the background thread, refresh the news items
+            @Override
+            public Void loadInBackground() {
+                RefreshTasks.refreshArticles(MainActivity.this);
+                return null;
             }
-        }
+        };
 
-        }
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Void> loader, Void data) {
+        Log.d(TAG, "on Load Finished has started");
+        progress.setVisibility(View.GONE);
+        db = new DBHelper(MainActivity.this).getReadableDatabase();
+        cursor = DatabaseUtils.getAll(db);
+
+        mNewsAdapter = new NewsAdapter(cursor, this);
+        mRecyclerView.setAdapter(mNewsAdapter);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Void> loader) {
+
+    }
+
+    @Override
+    public void OnItemClick(Cursor cursor, int clickedItem) {
+        cursor.moveToPosition(clickedItem);
+        String url = cursor.getString(cursor.getColumnIndex(Contract.TABLE_NEWS.COLUMN_NAME_URL));
+        Log.d(TAG, String.format("Url %s", url));
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(url));
+        startActivity(intent);
+    }
+
+    public void load() {
+        LoaderManager loaderManager = getSupportLoaderManager();
+        loaderManager.restartLoader(NEWS_LOADER, null, this).forceLoad();
+    }
+
 
 }

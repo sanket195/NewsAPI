@@ -6,6 +6,11 @@
     android:paddingLeft="8dp"
     android:paddingRight="8dp"
     android:background="?attr/selectableItemBackground">
+    
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
     <TextView
         android:id="@+id/author"
@@ -26,21 +31,23 @@
         android:textSize="14sp"/>
 
     <TextView
-        android:id="@+id/url"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"/>
-
-    <TextView
-        android:id="@+id/url_to_image"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"/>
-
-    <TextView
         android:id="@+id/published_at"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="14sp"/>
+
+    </LinearLayout>
+    
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent">
+        
+        <ImageView
+            android:id="@+id/img"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@color/colorAccent"/>
+    </FrameLayout>
+
 
 </LinearLayout>
