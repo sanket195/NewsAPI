@@ -45,10 +45,10 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsAdapterVie
 
         NewsAdapterViewHolder(View view){
             super(view);
-            author = (TextView)view.findViewById(R.id.author);
-            title = (TextView)view.findViewById(R.id.title);
-            description = (TextView)view.findViewById(R.id.description);
-            image = (ImageView) view.findViewById(R.id.img);
+            author = view.findViewById(R.id.author);
+            title = view.findViewById(R.id.title);
+            description = view.findViewById(R.id.description);
+            image = view.findViewById(R.id.img);
             view.setOnClickListener(this);
             Log.d(TAG, "NewsAdapterViewHolder has been created");
         }
@@ -77,7 +77,7 @@ public class NewsAdapter extends RecyclerView.Adapter<NewsAdapter.NewsAdapterVie
 
     @Override
     public NewsAdapterViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
-        Context context = viewGroup.getContext();
+        context = viewGroup.getContext();
         int layoutIdForListItem = R.layout.news_layout_list;
         LayoutInflater inflater = LayoutInflater.from(context);
         boolean shouldAttachToParentImmediately = false;

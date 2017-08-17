@@ -34,7 +34,6 @@ public class NetworkUtils {
         URL url = null;
         try {
             url = new URL(uri.toString());
-            return url;
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -49,15 +48,13 @@ public static String getResponseFromHttpUrl(URL url) throws IOException {
         Scanner scanner = new Scanner(in);
         scanner.useDelimiter("\\A");
 
-        boolean hasInput = scanner.hasNext();
-        if(hasInput){
-            return scanner.next();
-        }else {
-            return null;
-        }
-    } finally {
+        String result = (scanner.hasNext()) ? scanner.next() : null;
+        return result;
+    } catch (IOException e){
+        e.printStackTrace();
+    } finally{
         urlConnection.disconnect();
     }
-
+    return null;
 }
 }
